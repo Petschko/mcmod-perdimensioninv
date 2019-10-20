@@ -1,0 +1,5 @@
+<Loggers>
+<Logger level="debug" name="perdimensioninventorys">
+        <AppenderRef ref="FmlSysOut" />
+    </Logger>
+</Loggers>
