@@ -20,6 +20,8 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldProvider;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+
 import org.apache.logging.log4j.util.Strings;
 
 public class InventoryHandler
@@ -100,11 +102,6 @@ public class InventoryHandler
       if (getDimensionGroup(dimension.intValue()) == null)
       {
 
-    	  //TODO: d
-    	  
-    	  /*TODO: Default dimension
-    	  
-    	 //Add to that group*/
     	
     	  dimensionsLeft.add(dimension);
         	
@@ -199,6 +196,7 @@ public class InventoryHandler
 	int destinationInventoryIndex = -1;
     
     oldDimension=originHash;
+    perdimesioninv.writedebug("old dim "+oldDimension);
     
     float originHealth = player.getHealth();
     int originFoodLevel =player.getFoodStats().getFoodLevel();
@@ -299,6 +297,16 @@ public class InventoryHandler
     return null;
   }
   
+  
+  //ded
+  @SubscribeEvent
+  public void playerDeath(LivingDeathEvent event) {
+	  if(event.getEntity() instanceof EntityPlayer){
+		  oldDimension=event.getEntity().dimension;
+	  }
+	  
+  }
+  
   @SubscribeEvent
   public void playerRespawn(PlayerRespawnEvent event)
   {
@@ -309,7 +317,7 @@ public class InventoryHandler
         syncConfig();
       }
       int deathDimension = oldDimension;
-      int spawnDimension = event.player.world.provider.getDimension();
+      int spawnDimension = event.player.dimension;
       perdimesioninv.writedebug("respawn "+deathDimension+">"+spawnDimension);
       if (deathDimension != spawnDimension)
       {

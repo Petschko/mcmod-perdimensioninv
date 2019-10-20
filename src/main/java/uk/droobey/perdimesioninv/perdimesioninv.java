@@ -14,7 +14,7 @@ import org.apache.logging.log4j.Logger;
 import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 //serverSideOnly = true,acceptableRemoteVersions="*"
-@Mod(modid="perdimensioninv", name="Per Dimension Inventorys", version="0.1",serverSideOnly = true,acceptableRemoteVersions="*")
+@Mod(modid="perdimensioninv", name="Per Dimension Inventorys", version=Reference.MOD_VERSION,serverSideOnly = true,acceptableRemoteVersions="*")
 
 public class perdimesioninv {
 
@@ -63,7 +63,7 @@ public class perdimesioninv {
 	        catch (Throwable ex) {
 	            isDeObf = false;
 	        }
-		return(isDeObf||System.getProperty("debug.log")!=null||java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().toString().indexOf("-agentlib:jdwp") > 0);
+		return((Loader.instance().activeModContainer().getDisplayVersion().contains("-dev"))||isDeObf||System.getProperty("debug.log")!=null||java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().toString().indexOf("-agentlib:jdwp") > 0);
 	  }
 
 }

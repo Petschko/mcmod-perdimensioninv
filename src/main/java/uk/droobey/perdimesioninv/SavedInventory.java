@@ -10,6 +10,7 @@ import baubles.api.cap.BaublesCapabilities;
 import baubles.api.cap.BaublesContainer;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
@@ -39,6 +40,26 @@ public class SavedInventory {
 
 	    public int getDimensionHash() {
 	        return this.dimensionHash;
+	    }
+	    
+	    public Boolean isEmpty() {
+	    	for (int i = 0; i < this.mainInventory.length; ++i) {
+	    		if (this.mainInventory[i] == null) continue;
+	    		if (Item.getIdFromItem(this.mainInventory[i].getItem())!=0){
+	    			return false;
+	    		}
+	    	}
+	    	
+
+	    	for (int i = 0; i < this.armorInventory.length; ++i) {
+	    		if (this.armorInventory[i] == null) continue;
+	    		if (Item.getIdFromItem(this.armorInventory[i].getItem())!=0){
+	    			return false;
+	    		}
+	    		}
+	    	return true;
+	    	
+	    	
 	    }
 
 	    public static SavedInventory generateFromCompound(NBTTagCompound compound) {
