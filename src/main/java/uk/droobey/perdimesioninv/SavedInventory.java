@@ -91,6 +91,8 @@ public class SavedInventory {
 	    
 	    }
 	    public void writeToNBT(NBTTagCompound compound) {
+	    	
+	    	if(!this.isEmpty()) {
 	        NBTTagCompound nbttagcompound;
 	        int i;
 	        compound.setInteger("dimensionHash", this.dimensionHash);
@@ -140,7 +142,10 @@ public class SavedInventory {
 	        } while (true);
 	        
 	
-	       
+	    	}else {
+	    		
+	    		  perdimesioninv.writedebug("not saving NBT for "+this.dimensionHash+" -empty inventory");
+	    	}
 	    }
 
 	    public void readFromNBT(NBTTagCompound compound) {
@@ -185,6 +190,7 @@ public class SavedInventory {
 
 	    
 	    public void loadFromPlayerInventory(InventoryPlayer player) {
+	    	perdimesioninv.writedebug("loading player inventory for dim"+this.dimensionHash);
 	        for (int mainSlot = 0; mainSlot < player.mainInventory.size(); ++mainSlot) {
 	            this.mainInventory[mainSlot] = (ItemStack)player.mainInventory.get(mainSlot).copy();
 	        }

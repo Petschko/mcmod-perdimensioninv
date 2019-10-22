@@ -1,7 +1,10 @@
 package uk.droobey.perdimesioninv;
 
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.eventhandler.Event;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerChangedDimensionEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerRespawnEvent;
 import java.util.ArrayList;
@@ -10,7 +13,12 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import uk.droobey.perdimesioninv.SavedInventory;
+import uk.droobey.perdimesioninv.Inventories;
+
+
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTPrimitive;
 import net.minecraft.nbt.NBTTagCompound;
@@ -20,6 +28,9 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldProvider;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.event.CommandEvent;
+import net.minecraftforge.event.entity.EntityEvent;
+import net.minecraftforge.event.entity.EntityTravelToDimensionEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 
 import org.apache.logging.log4j.util.Strings;
@@ -172,98 +183,166 @@ public class InventoryHandler
     return inventoryList;
   }
   
+ 
+  private SavedInventory saveInventory(EntityPlayer player, int originHash) {
+	  if (!player.getEntityData().hasKey("PlayerPersisted"))
+	    {
+	      player.getEntityData().setTag("PlayerPersisted", new NBTTagCompound());
+	    }
+	    NBTTagList nbtList = ((NBTTagCompound)player.getEntityData().getTag("PlayerPersisted")).getTagList("DimensionInventorys", 10);
+	    
+	    if (nbtList == null)
+	    {
+	      nbtList = new NBTTagList();
+	    }
+	    List<SavedInventory> inventoryList = loadSavedInventorys(nbtList);
+	    
+	    
+	    SavedInventory originInventory = null;
+
+	    int originInventoryIndex = -1;
+	    
+	    float originHealth = player.getHealth();
+	    int originFoodLevel =player.getFoodStats().getFoodLevel();
+	    for (int index = 0; index < inventoryList.size(); index++)
+	    {
+	    	SavedInventory savedInventory = (SavedInventory)inventoryList.get(index);
+	    	  if (savedInventory.getDimensionHash() == originHash)
+	          {
+	    		  originInventory = savedInventory;
+		            originInventoryIndex = index;
+		            
+	          }
+	    }
+	    
+	    if (originInventory == null)
+        {
+
+          originInventory = new SavedInventory(originHash, player.inventory);
+
+          
+        }else {
+        	
+        	nbtList.removeTag(originInventoryIndex);
+        }
+	    
+	
+		  NBTTagCompound originSave = new NBTTagCompound();
+		  
+		  if(includeHealth) {
+		    	
+
+			    originSave.setFloat("Health", originHealth);
+			    }
+			    
+			    if(includeHunger) {
+			    	 originSave.setInteger("foodLevel",originFoodLevel);
+			   
+			    }
+			    return originInventory;  
+  }
+  
+  
+  private Inventories getInventories(EntityPlayer player, int originHash, int destinationHash) {
+	  if (!player.getEntityData().hasKey("PlayerPersisted"))
+	    {
+	      player.getEntityData().setTag("PlayerPersisted", new NBTTagCompound());
+	    }
+	    NBTTagList nbtList = ((NBTTagCompound)player.getEntityData().getTag("PlayerPersisted")).getTagList("DimensionInventorys", 10);
+	    
+	    if (nbtList == null)
+	    {	
+	      nbtList = new NBTTagList();
+	    }
+	    List<SavedInventory> inventoryList = loadSavedInventorys(nbtList);
+	    
+	    
+	    SavedInventory originInventory = null;
+	    SavedInventory destinationInventory = null;
+
+	    int originInventoryIndex = -1;
+	    @SuppressWarnings("unused")
+		int destinationInventoryIndex = -1;
+	    
+	    
+	    perdimesioninv.writedebug("old dim "+oldDimension);
+	    
+
+	    for (int index = 0; index < inventoryList.size(); index++)
+	    {
+	    	  SavedInventory savedInventory = (SavedInventory)inventoryList.get(index);
+	          perdimesioninv.writedebug("get inv "+index+" dim"+savedInventory.getDimensionHash());
+	     
+	          if (savedInventory.getDimensionHash() == originHash)
+	          {
+	            originInventory = savedInventory;
+	            originInventoryIndex = index;
+	            perdimesioninv.writedebug("Origin dim: "+savedInventory.getDimensionHash());
+	            
+	          }
+	          else if (savedInventory.getDimensionHash() == destinationHash)
+	          {
+	            destinationInventory = savedInventory;
+	            destinationInventoryIndex = index;
+	            perdimesioninv.writedebug("Destination dim: "+savedInventory.getDimensionHash());
+	          }
+	          
+	         
+	    }
+	    
+	    if (originInventory == null)
+        {
+        	perdimesioninv.writedebug("Origin dim null");
+          originInventory = new SavedInventory(originHash, player.inventory);
+
+          
+        }
+        else
+        {
+          nbtList.removeTag(originInventoryIndex);
+        }
+	    
+	    
+	    if (destinationInventory == null)
+	    {
+	    	perdimesioninv.writedebug("Dest dim null");
+
+	      destinationInventory = new SavedInventory(destinationHash);
+	     
+	    }
+	    return new Inventories(originInventory, destinationInventory, originInventoryIndex, destinationInventoryIndex);
+  }
+  
   private void switchedGroup(EntityPlayer player, int originHash, int destinationHash)
   {
-	  perdimesioninv.writedebug("group changed");
-    if (!player.getEntityData().hasKey("PlayerPersisted"))
-    {
-      player.getEntityData().setTag("PlayerPersisted", new NBTTagCompound());
-    }
+	 Inventories invs = getInventories(player,originHash,destinationHash);
+    SavedInventory originInventory = invs.originInventory;
+    SavedInventory destinationInventory = invs.destinationInventory;
+
+
+    
     NBTTagList nbtList = ((NBTTagCompound)player.getEntityData().getTag("PlayerPersisted")).getTagList("DimensionInventorys", 10);
     
-    if (nbtList == null)
-    {
-      nbtList = new NBTTagList();
-    }
-    List<SavedInventory> inventoryList = loadSavedInventorys(nbtList);
     
     
-    SavedInventory originInventory = null;
-    SavedInventory destinationInventory = null;
-
-    int originInventoryIndex = -1;
-    @SuppressWarnings("unused")
-	int destinationInventoryIndex = -1;
-    
-    oldDimension=originHash;
-    perdimesioninv.writedebug("old dim "+oldDimension);
+    perdimesioninv.writedebug("sg old dim "+oldDimension);
     
     float originHealth = player.getHealth();
     int originFoodLevel =player.getFoodStats().getFoodLevel();
-    for (int index = 0; index < inventoryList.size(); index++)
-    {
-      SavedInventory savedInventory = (SavedInventory)inventoryList.get(index);
-      perdimesioninv.writedebug("get inv "+index+" dim"+savedInventory.getDimensionHash());
- 
-      if (savedInventory.getDimensionHash() == originHash)
-      {
-        originInventory = savedInventory;
-        originInventoryIndex = index;
-        perdimesioninv.writedebug("Origin dim: "+savedInventory.getDimensionHash());
-        
-      }
-      else if (savedInventory.getDimensionHash() == destinationHash)
-      {
-        destinationInventory = savedInventory;
-        destinationInventoryIndex = index;
-        perdimesioninv.writedebug("Destination dim: "+savedInventory.getDimensionHash());
-        
-        if (includeBaubles) {
-        	
-        	
-        }
-        if(includeHealth) {
-        NBTTagCompound healthtag = nbtList.getCompoundTagAt(index);
-        if(healthtag!=null) {
-        	if(healthtag.getFloat("Health")>0) {
-        	player.setHealth(healthtag.getFloat("Health"));
-        	}
-        }
-      }
-        
-        if(includeHunger) {
-        	NBTTagCompound foodtag = nbtList.getCompoundTagAt(index);
-        	if(foodtag!=null) {
-        		if(foodtag.getInteger("foodLevel")>0) {
-            	player.getFoodStats().setFoodLevel(foodtag.getInteger("foodLevel"));
-        		}
-            }
 
-       	 }
-      }
-    }
     
-    if (originInventory == null)
+    if (destinationInventory.isEmpty())
     {
-    	perdimesioninv.writedebug("Origin dim null");
-      originInventory = new SavedInventory(originHash, player.inventory);
-
-      
-    }
-    else
-    {
-      nbtList.removeTag(originInventoryIndex);
-    }
-    
-    if (destinationInventory == null)
-    {
-    	perdimesioninv.writedebug("Dest dim null");
+    	perdimesioninv.writedebug("sg Dest dim null");
     	player.inventory.clear();
       destinationInventory = new SavedInventory(destinationHash);
      
     }
     
-    originInventory.loadFromPlayerInventory(player.inventory);
+
+ 
+   // originInventory.loadFromPlayerInventory(player.inventory);
+
     destinationInventory.putInPlayerInventory(player.inventory);
     
     NBTTagCompound originSave = new NBTTagCompound();
@@ -279,9 +358,11 @@ public class InventoryHandler
     }
     originSave.setIntArray("lastPos", new int[] {(int) player.posX,(int) player.posY,(int) player.posZ}  );
     
+
     originInventory.writeToNBT(originSave);
     nbtList.appendTag(originSave);
     
+
     ((NBTTagCompound)player.getEntityData().getTag("PlayerPersisted")).setTag("DimensionInventorys", nbtList);
   }
   
@@ -378,9 +459,41 @@ public class InventoryHandler
   }
   
   @SubscribeEvent
-  public void changedDimension(PlayerChangedDimensionEvent event)
-  {
+  public void onCommand(CommandEvent event) {
+	  if (event.getSender() instanceof EntityPlayer) {
+		  EntityPlayer player = (EntityPlayer) event.getSender();
+		  if(event.getCommand().getName().startsWith("tp")) {
+			  
+			  saveInventory(player,player.dimension);
+			  
+	  perdimesioninv.writedebug("Command: "+event.getCommand()+" in"+player.dimension);
+		  }
+	  }
+  }
+  
+  @SubscribeEvent
+  public void onEntityTravelToDimensionEvent(EntityTravelToDimensionEvent event) {
+	  perdimesioninv.writedebug("tp dim: entity type "+event.getEntity().getClass().getTypeName());
+	  if (event.getEntity() instanceof EntityPlayer) {
+		  EntityPlayer player = (EntityPlayer) event.getEntity();
+		  Inventories invs = getInventories(player,player.dimension,event.getDimension());
+		  
+		  SavedInventory originInventory = invs.originInventory;
+		  
+	        perdimesioninv.writedebug("Before DimTP Origin dim "+player.dimension+": "+ originInventory.getDimensionHash());
+	        originInventory.loadFromPlayerInventory(player.inventory);
+	      }
 
+ 
+  }
+  
+  @SubscribeEvent
+  public void changedDimension(PlayerEvent.PlayerChangedDimensionEvent event)
+  {
+	  perdimesioninv.writedebug("dim change from "+event.fromDim+ " current "+event.player.dimension);
+	  
+	
+	  
       int originDimension = event.fromDim;
       int destinationDimension = event.toDim;
       

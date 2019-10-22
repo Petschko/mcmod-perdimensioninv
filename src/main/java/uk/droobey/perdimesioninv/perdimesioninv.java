@@ -14,18 +14,19 @@ import org.apache.logging.log4j.Logger;
 import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 //serverSideOnly = true,acceptableRemoteVersions="*"
-@Mod(modid="perdimensioninv", name="Per Dimension Inventorys", version=Reference.MOD_VERSION,serverSideOnly = true,acceptableRemoteVersions="*")
+@Mod(modid="aperdimensioninv", name="Per Dimension Inventorys", version=Reference.MOD_VERSION,serverSideOnly = true,acceptableRemoteVersions="*")
 
 public class perdimesioninv {
 
-	 @Mod.Instance("DimensionInventorys")
 	  public static perdimesioninv instance;
 	  public static InventoryHandler inventoryHandler;
 	  public static Logger logger;
 	  private static boolean isDebug;
+
 	  @Mod.EventHandler
 	  public void preInit(FMLPreInitializationEvent event)
 	  {
+		  instance=this;
 	    perdimesioninv.inventoryHandler = new InventoryHandler();
 	    perdimesioninv.inventoryHandler.preInit(event);
 	    
@@ -33,20 +34,22 @@ public class perdimesioninv {
 	    logger.info(Loader.instance().activeModContainer().getModId()+" "+Loader.instance().activeModContainer().getDisplayVersion()+" loading...");
 	    isDebug=checkDebug();
 	    writedebug("Debugging mode detected, outputting debug messages");
+	    
+	    writedebug("Registring Events...");
+	    MinecraftForge.EVENT_BUS.register(perdimesioninv.inventoryHandler);
+	    writedebug("...all good");
+	    
+	
+	    
 	  }
 	  
-	  @Mod.EventHandler
-	  public void init(FMLInitializationEvent event)
-	  {
-	    MinecraftForge.EVENT_BUS.register(this.inventoryHandler);
-	  }
 	  
 	
-	  @Mod.EventHandler
+	  /*@Mod.EventHandler
 	  public void serverStarting(FMLServerStartingEvent event)
 	  {
 	    event.registerServerCommand(new DICommand());
-	  }
+	  }*/
 	
 	  public static void writedebug(String message) {
 		  if(isDebug) {
